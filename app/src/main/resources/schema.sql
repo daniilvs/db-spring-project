@@ -1,15 +1,21 @@
 DROP TABLE if exists engine cascade;
 DROP TABLE if exists car;
-DROP TABLE if exists track;
-DROP TABLE if exists team;
-DROP TABLE if exists format;
+DROP TABLE if exists track cascade;
+DROP TABLE if exists team cascade;
+DROP TABLE if exists format cascade;
 DROP TABLE if exists constructors_championship;
 DROP TABLE if exists drivers_championships;
-DROP TABLE if exists engine;
-DROP TABLE if exists engine;
-DROP TABLE if exists engine;
-DROP TABLE if exists engine;
-DROP TABLE if exists engine;
+DROP TABLE if exists driver cascade;
+DROP TABLE if exists tyre cascade;
+DROP TABLE if exists grand_prix cascade;
+DROP TABLE if exists practice;
+DROP TABLE if exists qualification;
+DROP TABLE if exists sprint;
+DROP TABLE if exists race;
+DROP TABLE if exists scoring_system cascade;
+DROP TABLE if exists sprint_points cascade;
+DROP TABLE if exists race_points cascade;
+DROP TABLE if exists status cascade;
 
 CREATE TABLE engine(
     engine_id SMALLINT PRIMARY KEY,
