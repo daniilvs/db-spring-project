@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,9 @@ public class EngineServiceImpl implements EngineService {
     public Collection<Engine> findAll() {
         return engineRepository.findAll();
     }
+
+    @Override
+    public Optional<Engine> findByManufacturer(String manufacturer) { return engineRepository.findByManufacturer(manufacturer); }
 
     @Override
     public void insert(Engine engine) {

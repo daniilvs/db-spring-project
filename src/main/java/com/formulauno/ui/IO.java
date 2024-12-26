@@ -1,6 +1,6 @@
 package com.formulauno.ui;
 
-import JDBC.and.Boot.service.MessageService;
+import com.formulauno.service.MessageService;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;

@@ -1,13 +1,14 @@
 package com.formulauno.ui;
 
-import JDBC.and.Boot.AppException;
-import JDBC.and.Boot.domain.Author;
-import JDBC.and.Boot.domain.Book;
-import JDBC.and.Boot.service.AuthorService;
-import JDBC.and.Boot.service.BookService;
-import JDBC.and.Boot.service.CurrentLocaleService;
+import com.formulauno.AppException;
+import com.formulauno.domain.Engine;
+import com.formulauno.domain.Team;
+import com.formulauno.service.CurrentLocaleService;
+import com.formulauno.service.EngineService;
+import com.formulauno.service.TeamService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.relational.core.sql.In;
 import org.springframework.shell.Availability;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
@@ -16,19 +17,20 @@ import org.springframework.shell.standard.ShellOption;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.joining;
 
 @ShellComponent
 @RequiredArgsConstructor
 public class Commands {
-    private final BookService bookService;
-    private final AuthorService authorService;
+    private final EngineService engineService;
+    private final TeamService teamService;
     private final IO io;
     private final CurrentLocaleService currentLocaleService;
 
     public enum State {
-        MAIN_MENU("main menu"), PROCESSING_BOOK("book processing");
+        MAIN_MENU("main menu"), PROCESSING_ENGINE("engine processing"), PROCESSING_TEAM("team processing");
         @Getter
         private final String title;
 
@@ -40,7 +42,8 @@ public class Commands {
     @Getter
     private State state = State.MAIN_MENU;
 
-    private Book handlingBook;
+    private Team handlingTeam;
+    private Engine handlingEngine;
 
     @ShellMethod(value = "change current language", key = {"language", "lang"})
     @ShellMethodAvailability("availableInMainMenu")
@@ -53,170 +56,206 @@ public class Commands {
         }
     }
 
-    @ShellMethod(value = "show all books", key = "book-all")
+    @ShellMethod(value = "show all teams", key = "teams-all")
     @ShellMethodAvailability("availableInMainMenu")
-    public void showAllBooks() {
-        var books = bookService.findAll();
-        if (books.isEmpty())
-            io.interPrintln("no-book-found");
+    public void showAllTeams() {
+        var teams = teamService.findAll();
+        if (teams.isEmpty())
+            io.interPrintln("no-team-found");
         else
-            io.println(booksToString(books));
+            io.println(teamsToString(teams));
     }
 
-    @ShellMethod(value = "find book by title part", key = "book-find")
+    @ShellMethod(value = "find team by its name", key = "team-find")
     @ShellMethodAvailability("availableInMainMenu")
-    public void findBookByTitlePart(@ShellOption(defaultValue = "") String titlePart) {
-        if (titlePart.isEmpty()) {
-            io.interPrint("print-title-part");
-            titlePart = io.readLine();
+    public void findTeamByName(@ShellOption(defaultValue = "") String name) {
+        if (name.isEmpty()) {
+            io.interPrint("print-team-name");
+            name = io.readLine();
         }
-        if (titlePart.isBlank())
+        if (name.isBlank())
             io.interPrintln("operation-cancelled-by-empty-line");
         else {
-            var books = bookService.findAllByTitlePart(titlePart);
-            if (books.isEmpty())
-                io.interPrintln("no-book-found");
+            var teams = teamService.findByName(name);
+            if (teams.isEmpty())
+                io.interPrintln("no-team-found");
             else
-                io.println(booksToString(books));
+                io.println(teamsToString(teams));
         }
     }
 
-    @ShellMethod(value = "update book", key = "book-update")
+
+    @ShellMethod(value = "update team", key = "team-update")
     @ShellMethodAvailability("availableInMainMenu")
-    public void updateBook(@ShellOption(defaultValue = "") String titlePart) {
-        if (titlePart.isEmpty()) {
+    public void updateTeam(@ShellOption(defaultValue = "") String name) {
+        if (name.isEmpty()) {
             io.interPrint("print-title-part");
-            titlePart = io.readLine();
+            name = io.readLine();
         }
-        if (titlePart.isBlank())
+        if (name.isBlank())
             io.interPrintln("operation-cancelled-by-empty-line");
         else {
-            var books = bookService.findAllByTitlePart(titlePart);
-            if (books.isEmpty())
-                io.interPrintln("no-book-found");
-            else if (books.size() > 1) {
-                io.interPrintln("too-many-books-found");
-                io.println(booksToString(books));
-            } else {
-                handlingBook = books.iterator().next();
-                state = State.PROCESSING_BOOK;
-                show();
+            var team = teamService.findByName(name);
+            if (team.isEmpty())
+                io.interPrintln("no-team-found");
+            else {
+                handlingTeam = team.get();
+                state = State.PROCESSING_TEAM;
+                teamShow();
             }
         }
     }
 
-    @ShellMethod(value = "insert new book", key = "book-insert")
+    @ShellMethod(value = "update engine manufacturer", key = "engine-update")
     @ShellMethodAvailability("availableInMainMenu")
-    public void insertBook() {
-        handlingBook = new Book(0, "", 0, new HashSet<>());
-        state = State.PROCESSING_BOOK;
-        show();
-    }
-
-    @ShellMethod(value = "show handling book", key = "show")
-    @ShellMethodAvailability("availableInUpdatingBook")
-    public void show() {
-        io.println(bookToString(handlingBook));
-    }
-
-    @ShellMethod(value = "set book's title", key = "set-title")
-    @ShellMethodAvailability("availableInUpdatingBook")
-    public void setTitle(@ShellOption(defaultValue = "") String title) {
-        if (title.isBlank()) {
-            io.interPrint("set-title");
-            title = io.readLine();
+    public void updateEngine(@ShellOption(defaultValue = "") String manufacturer) {
+        if (manufacturer.isEmpty()) {
+            io.interPrint("print-engine-manufacturer");
+            manufacturer = io.readLine();
         }
-        if (title.isBlank()) {
+        if (manufacturer.isBlank())
+            io.interPrintln("operation-cancelled-by-empty-line");
+        else {
+            var engine = engineService.findByManufacturer(manufacturer);
+            if (engine.isEmpty())
+                io.interPrintln("no-team-found");
+            else {
+                handlingEngine = engine.get();
+                state = State.PROCESSING_ENGINE;
+                engineShow();
+            }
+        }
+    }
+
+    @ShellMethod(value = "insert new team", key = "team-insert")
+    @ShellMethodAvailability("availableInMainMenu")
+    public void insertTeam() {
+        handlingTeam = new Team(0, "New Team", "Bermuda Triangle", 1, 9999, new HashSet<>());
+        state = State.PROCESSING_TEAM;
+        teamShow();
+    }
+
+    @ShellMethod(value = "show handling engine", key = "engine-show")
+    @ShellMethodAvailability("availableInUpdatingEngine")
+    public void engineShow() {
+        io.println(enginesToString(handlingEngine));
+    }
+
+    @ShellMethod(value = "insert new engine", key = "engine-insert")
+    @ShellMethodAvailability("availableInMainMenu")
+    public void insertEngine() {
+        handlingEngine = new Engine(0, "New manufacturer", new HashSet<>());
+        state = State.PROCESSING_ENGINE;
+        engineShow();
+    }
+
+    @ShellMethod(value = "show handling team", key = "team-show")
+    @ShellMethodAvailability("availableInUpdatingTeam")
+    public void teamShow() {
+        io.println(teamsToString(handlingTeam));
+    }
+
+    @ShellMethod(value = "set team's name", key = "set-name")
+    @ShellMethodAvailability("availableInUpdatingTeam")
+    public void setName(@ShellOption(defaultValue = "") String name) {
+        if (name.isBlank()) {
+            io.interPrint("set-name");
+            name = io.readLine();
+        }
+        if (name.isBlank()) {
             io.interPrintln("Empty line entered, operation cancelled");
         } else {
-            handlingBook.setTitle(title);
-            io.interPrintln("new-title-is", handlingBook.getTitle());
+            handlingTeam.setName(name);
+//            teamService.update(handlingTeam);
+            io.interPrintln("new-name-is", handlingTeam.getName());
         }
     }
 
-    @ShellMethod(value = "set book's publish year", key = "set-year")
-    @ShellMethodAvailability("availableInUpdatingBook")
-    public void setYear(@ShellOption(defaultValue = "") String year) {
-        if (year.isBlank()) {
-            io.interPrint("set-year");
-            year = io.readLine();
+    @ShellMethod(value = "set team's location", key = "set-location")
+    @ShellMethodAvailability("availableInUpdatingTeam")
+    public void setLocation(@ShellOption(defaultValue = "") String location) {
+        if (location.isBlank()) {
+            io.interPrint("set-location");
+            location = io.readLine();
         }
-        if (year.isBlank()) {
-            io.interPrintln("operation-cancelled-by-empty-line");
-        } else if (!year.matches("^\\d+$")) {
-            io.interPrintln("year-must-contain-digits-only");
+        if (location.isBlank()) {
+            io.interPrintln("Empty line entered, operation cancelled");
         } else {
-            int yearNumber = Integer.parseInt(year);
-            handlingBook.setYear(yearNumber);
-            io.interPrintln("new-year-is", handlingBook.getYear());
+            handlingTeam.setLocation(location);
+//            teamService.update(handlingTeam);
+            io.interPrintln("new-location-is", handlingTeam.getLocation());
         }
     }
 
-    @ShellMethod(value = "add an author", key = "add-author")
-    @ShellMethodAvailability("availableInUpdatingBook")
-    public void addAuthor(@ShellOption(defaultValue = "") String authorNamePart) {
-        if (authorNamePart.isBlank()) {
-            io.interPrintln("enter-author-name-part");
-            authorNamePart = io.readLine();
+    @ShellMethod(value = "set team's date since debut", key = "set-since")
+    @ShellMethodAvailability("availableInUpdatingTeam")
+    public void setSince(@ShellOption(defaultValue = "") String since) {
+        if (since.isBlank()) {
+            io.interPrint("set-date-since");
+            since = io.readLine();
         }
-        if (authorNamePart.isBlank()) {
-            io.interPrintln("operation-cancelled-by-empty-line");
+        if (since.isBlank()) {
+            io.interPrintln("Empty line entered, operation cancelled");
         } else {
-            var authors = authorService.findAllByNamePart(authorNamePart);
-            if (authors.isEmpty()) {
-                io.interPrintln("no-author-found");
-            } else if (authors.size() > 1) {
-                io.interPrintln("several-authors-found");
-                io.println(authorsToString(authors));
-            } else {
-                var author = authors.iterator().next();
-                io.interPrintln("author-added");
-                handlingBook.getAuthors().add(author);
-                io.interPrintln("current-authors");
-                io.println(authorsToString(handlingBook.getAuthors()));
+            int date = Integer.parseInt(since);
+            if (date > 0) {
+                handlingTeam.setSince(date);
+//                teamService.update(handlingTeam);
+                io.interPrintln("new-since-is", handlingTeam.getSince());
             }
+            else io.interPrintln("Year can't be negative");
         }
     }
 
-    @ShellMethod(value = "remove an author", key = "remove-author")
-    @ShellMethodAvailability("availableInUpdatingBook")
-    public void removeAuthor(@ShellOption(defaultValue = "") String authorNamePart) {
-        if (authorNamePart.isBlank()) {
-            io.interPrint("enter-author-name-part");
-            authorNamePart = io.readLine();
+    @ShellMethod(value = "set team's date till retirement", key = "set-till")
+    @ShellMethodAvailability("availableInUpdatingTeam")
+    public void setTill(@ShellOption(defaultValue = "") String till) {
+        if (till.isBlank()) {
+            io.interPrint("set-date-till");
+            till = io.readLine();
         }
-        if (authorNamePart.isBlank()) {
-            io.interPrintln("operation-cancelled-by-empty-line");
+        if (till.isBlank()) {
+            io.interPrintln("Empty line entered, operation cancelled");
         } else {
-            var authors = authorService.findAllByNamePart(authorNamePart);
-            if (authors.isEmpty()) {
-                io.interPrintln("no-author-found");
-            } else if (authors.size() > 1) {
-                io.interPrintln("several-authors-found");
-                io.println(authorsToString(authors));
-            } else {
-                var author = authors.iterator().next();
-                io.interPrintln("author-removed");
-                handlingBook.getAuthors().remove(author);
-                io.interPrintln("current-authors");
-                io.println(authorsToString(handlingBook.getAuthors()));
+            int date = Integer.parseInt(till);
+            if (date > 0) {
+                handlingTeam.setSince(date);
+//                teamService.update(handlingTeam);
+                io.interPrintln("new-till-is", handlingTeam.getTill());
             }
+            else io.interPrintln("Year can't be negative");
         }
     }
+
+    @ShellMethod(value = "remove engine manufacturer", key = "remove-engine")
+    @ShellMethodAvailability("availableInUpdatingEngine")
+    public void removeEngine(@ShellOption(defaultValue = "") String manufacturer) {
+        if (manufacturer.isBlank()) {
+            io.interPrint("remove-manufacturer");
+            manufacturer = io.readLine();
+        }
+        if (manufacturer.isBlank()) {
+            io.interPrintln("Empty line entered, operation cancelled");
+        } else {
+            engineService.remove(handlingEngine);
+        }
+    }
+
 
     @ShellMethod(value = "cancel current operation", key = "cancel")
-    @ShellMethodAvailability("availableInUpdatingBook")
+    @ShellMethodAvailability({"availableInUpdatingEngine", "availableInUpdatingTeam"})
     public void cancel() {
         io.interPrintln("operation-cancelled");
         state = State.MAIN_MENU;
     }
 
+
     @ShellMethod(value = "perform current operation", key = "perform")
-    @ShellMethodAvailability("availableInUpdatingBook")
+    @ShellMethodAvailability("availableInUpdatingTeam")
     public void perform() {
         try {
-            if (checkHandlingBook()) {
-                bookService.save(handlingBook);
+            if (checkHandlingTeam()) {
+                teamService.update(handlingTeam);
                 io.interPrintln("operation-successful");
                 state = State.MAIN_MENU;
             }
@@ -225,15 +264,25 @@ public class Commands {
         }
     }
 
-    private boolean checkHandlingBook() {
-        if (handlingBook.getTitle().isBlank()) {
-            throw new AppException("book.check.title-must-not-be-empty");
+    private boolean checkHandlingEngine() {
+        if (handlingEngine.getManufacturer().isBlank()) {
+            throw new AppException("engine.check.manufacturer-must-not-be-empty");
         }
-        if (handlingBook.getYear() == 0) {
-            throw new AppException("book.check.year-must-be-set");
+        return true;
+    }
+
+    private boolean checkHandlingTeam() {
+        if (handlingTeam.getName().isBlank()) {
+            throw new AppException("team.check.name-must-not-be-empty");
         }
-        if (handlingBook.getAuthors().isEmpty()) {
-            throw new AppException("book.check.book-must-contains-at-least-one-author");
+        if (handlingTeam.getLocation().isBlank()) {
+            throw new AppException("team.check.location-must-not-be-empty");
+        }
+        if (handlingTeam.getSince() == 0) {
+            throw new AppException("team.check.since.-must-be-set");
+        }
+        if (handlingTeam.getTill() == 0) {
+            throw new AppException("team.check.till.-must-be-set");
         }
         return true;
     }
@@ -244,32 +293,49 @@ public class Commands {
                 " only, you now in " + state.getTitle());
     }
 
-    private Availability availableInUpdatingBook() {
-        return state == State.PROCESSING_BOOK ? Availability.available()
-                : Availability.unavailable("available in " + State.PROCESSING_BOOK.getTitle() +
+    private Availability availableInUpdatingEngine() {
+        return state == State.PROCESSING_ENGINE ? Availability.available()
+                : Availability.unavailable("available in " + State.PROCESSING_ENGINE.getTitle() +
                 " only, you now in " + state.getTitle());
     }
 
-    private String authorsToString(Collection<Author> authors) {
-        return authors.stream().map(Author::getName).collect(joining("\n"));
+    private Availability availableInUpdatingTeam() {
+        return state == State.PROCESSING_TEAM ? Availability.available()
+                : Availability.unavailable("available in " + State.PROCESSING_TEAM.getTitle() +
+                " only, you now in " + state.getTitle());
     }
 
-    private String booksToString(Collection<Book> books) {
-        return books.stream()
-                .map(this::bookToString)
+    private String enginesToString(Collection<Engine> engines) {
+        return engines.stream().map(Engine::getManufacturer).collect(joining("\n"));
+    }
+
+    private String teamsToString(Collection<Team> teams) {
+        return teams.stream()
+                .map(this::teamsToString)
                 .collect(joining("====================\n"));
     }
 
-    private String bookToString(Book book) {
-        var empty = "<" + io.inter("book.empty") + ">";
-        var title = book.getTitle().isBlank() ? empty : book.getTitle();
-        var authors = book.getAuthors().isEmpty() ? empty :
-                book.getAuthors().stream()
-                        .map(Author::getName).collect(joining(", "));
-        var year = book.getYear() == 0 ? empty : Integer.toString(book.getYear());
+    private String teamsToString(Optional<Team> teams) {
+        return teams.map(this::teamsToString).orElse("");
+    }
 
-        return io.inter("book.title") + ": " + title + "\n" +
-                io.inter("book.authors") + ": " + authors + "\n" +
-                io.inter("book.year") + ": " + year + "\n";
+    private String teamsToString(Team team) {
+        var empty = "<" + io.inter("team.empty") + ">";
+        var name = team.getName().isBlank() ? empty : team.getName();
+        var location = team.getLocation().isEmpty() ? empty : team.getLocation();
+        var since = team.getSince() == 0 ? empty : Integer.toString(team.getSince());
+        var till = team.getTill() == 0 ? empty : Integer.toString(team.getTill());
+
+        return io.inter("team.name") + ": " + name + "\n" +
+                io.inter("team.location") + ": " + location + "\n" +
+                io.inter("team.since") + ": " + since + "\n" +
+                io.inter("team.till") + ": " + till + "\n";
+    }
+
+    private String enginesToString(Engine engine) {
+        var empty = "<" + io.inter("engine.empty") + ">";
+        var manufacturer = engine.getManufacturer().isBlank() ? empty : engine.getManufacturer();
+
+        return io.inter("engine.manufacturer") + ": " + manufacturer + "\n";
     }
 }

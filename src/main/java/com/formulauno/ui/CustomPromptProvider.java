@@ -10,8 +10,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CustomPromptProvider implements PromptProvider {
     private static final AttributedString
-            UPDATING_BOOK_PROMPT = new AttributedString("processing-book> ",
+            UPDATING_TEAM_PROMPT = new AttributedString("processing-book> ",
                     AttributedStyle.BOLD.foreground(AttributedStyle.CYAN)),
+            UPDATING_ENGINE_PROMPT = new AttributedString("processing-book> ",
+                    AttributedStyle.BOLD.foreground(AttributedStyle.YELLOW)),
             MAIN_MENU_PROMPT = new AttributedString("main-menu> ",
                     AttributedStyle.BOLD.foreground(AttributedStyle.MAGENTA));
 
@@ -20,7 +22,8 @@ public class CustomPromptProvider implements PromptProvider {
     @Override
     public AttributedString getPrompt() {
         return switch (commands.getState()) {
-            case PROCESSING_BOOK -> UPDATING_BOOK_PROMPT;
+            case PROCESSING_TEAM -> UPDATING_TEAM_PROMPT;
+            case PROCESSING_ENGINE -> UPDATING_ENGINE_PROMPT;
             case MAIN_MENU -> MAIN_MENU_PROMPT;
         };
     }

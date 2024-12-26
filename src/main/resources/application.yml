@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://0.0.0.0:5432/db_racing
+    username: dani
+    password: 12345678
+  sql:
+    init:
+      mode: always
+app:
+  some:
+    greeting: OHAYO
+    number: 123

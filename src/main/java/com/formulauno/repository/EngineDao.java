@@ -2,6 +2,7 @@ package com.formulauno.repository;
 
 import com.formulauno.domain.Engine;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
@@ -10,6 +11,11 @@ import java.util.*;
 
 @Repository
 public class EngineDao implements EngineRepository {
+    private final static RowMapper<Engine> MAPPER = (rs, num) ->
+            new Engine(rs.getLong("id"),
+                    rs.getString("manufacturer"),
+                    null);
+
     private final JdbcTemplate jdbcTemplate;
 
     public EngineDao(JdbcTemplate jdbcTemplate) {
@@ -35,10 +41,18 @@ public class EngineDao implements EngineRepository {
     @Override
     public Collection<Engine> findAll() {
         String sql = "SELECT manufacturer FROM engine";
-        return jdbcTemplate.query(sql , (rs, rowNum) -> new Engine(
-                rs.getLong("id"),
-                rs.getString("manufacturer"),
-                null));
+        return jdbcTemplate.query(sql , MAPPER);
+    }
+
+    @Override
+    public Optional<Engine> findByManufacturer(String manufacturer) {
+        String sql = "SELECT manufacturer FROM engine WHERE manufacturer = :manufacturer";
+        var list = jdbcTemplate.query(sql, MAPPER);
+        if (list.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(list.get(0));
+        }
     }
 
     private static class SqlParams {
