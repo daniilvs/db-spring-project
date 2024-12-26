@@ -89,7 +89,7 @@ public class Commands {
     @ShellMethodAvailability("availableInMainMenu")
     public void updateTeam(@ShellOption(defaultValue = "") String name) {
         if (name.isEmpty()) {
-            io.interPrint("print-title-part");
+            io.interPrint("print-name");
             name = io.readLine();
         }
         if (name.isBlank())
@@ -118,7 +118,7 @@ public class Commands {
         else {
             var engine = engineService.findByManufacturer(manufacturer);
             if (engine.isEmpty())
-                io.interPrintln("no-team-found");
+                io.interPrintln("no-engine-found");
             else {
                 handlingEngine = engine.get();
                 state = State.PROCESSING_ENGINE;
