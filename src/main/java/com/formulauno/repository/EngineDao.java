@@ -4,6 +4,7 @@ import com.formulauno.domain.Engine;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 
@@ -17,9 +18,11 @@ public class EngineDao implements EngineRepository {
                     null);
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public EngineDao(JdbcTemplate jdbcTemplate) {
+    public EngineDao(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     @Override
@@ -29,7 +32,7 @@ public class EngineDao implements EngineRepository {
         jdbcTemplate.update(sql,
                 SqlParams.of("manufacturer", engine.getManufacturer()),
                 keyHolder);
-        engine.setId((Long)(keyHolder.getKeys().get("id")));
+        engine.setId((Long)(Objects.requireNonNull(keyHolder.getKeys()).get("id")));
     }
 
     @Override
@@ -47,11 +50,12 @@ public class EngineDao implements EngineRepository {
     @Override
     public Optional<Engine> findByManufacturer(String manufacturer) {
         String sql = "SELECT manufacturer FROM engine WHERE manufacturer = :manufacturer";
-        var list = jdbcTemplate.query(sql, MAPPER);
+        var params = SqlParams.of("manufacturer", manufacturer);
+        var list = namedParameterJdbcTemplate.query(sql, params, MAPPER);
         if (list.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(list.get(0));
+            return Optional.of(list.getFirst());
         }
     }
 
@@ -62,11 +66,11 @@ public class EngineDao implements EngineRepository {
             return params;
         }
 
-        public static MapSqlParameterSource of(String k1, Object v1, String k2, Object v2) {
-            var params = new MapSqlParameterSource();
-            params.addValue(k1, v1);
-            params.addValue(k2, v2);
-            return params;
-        }
+//        public static MapSqlParameterSource of(String k1, Object v1, String k2, Object v2) {
+//            var params = new MapSqlParameterSource();
+//            params.addValue(k1, v1);
+//            params.addValue(k2, v2);
+//            return params;
+//        }
     }
 }

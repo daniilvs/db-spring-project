@@ -1,6 +1,5 @@
-package com.formulauno.ui;
+package com.formulauno.service;
 
-import com.formulauno.service.MessageService;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -9,12 +8,12 @@ import java.io.PrintWriter;
 import java.util.Scanner;
 
 @Component
-public class IO {
+public class IOImpl implements IO {
     private final PrintWriter writer;
     private final Scanner scanner;
     private final MessageService messageService;
 
-    public IO(InputStream is, OutputStream os, MessageService messageService) {
+    public IOImpl(InputStream is, OutputStream os, MessageService messageService) {
         this.writer = new PrintWriter(os);
         this.scanner = new Scanner(is);
         this.messageService = messageService;

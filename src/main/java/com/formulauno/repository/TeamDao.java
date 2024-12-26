@@ -1,13 +1,15 @@
 package com.formulauno.repository;
 
-import com.formulauno.domain.Engine;
+//import com.formulauno.domain.Engine;
 import com.formulauno.domain.Team;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 
 @Repository
@@ -21,9 +23,11 @@ public class TeamDao implements TeamRepository {
             null);
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public TeamDao(JdbcTemplate jdbcTemplate) {
+    public TeamDao(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     @Override
@@ -35,23 +39,37 @@ public class TeamDao implements TeamRepository {
     @Override
     public Optional<Team> findById(long id) {
         String sql = "select * from team where id = :id";
-        return extractor(sql);
+        var params = new MapSqlParameterSource();
+        params.addValue("id", id);
+        var list = namedParameterJdbcTemplate.query(sql, params, MAPPER);
+        if (list.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(list.getFirst());
+        }
     }
 
     @Override
     public Optional<Team> findByName(String name) {
         String sql = "select * from team where name = :name";
-        return extractor(sql);
-    }
-
-    private Optional<Team> extractor(String sql) {
-        var list = jdbcTemplate.query(sql, MAPPER);
+        var params = new MapSqlParameterSource();
+        params.addValue("name", name);
+        var list = namedParameterJdbcTemplate.query(sql, params, MAPPER);
         if (list.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(list.get(0));
+            return Optional.of(list.getFirst());
         }
     }
+
+//    private Optional<Team> extractor(String sql) {
+//        var list = namedParameterJdbcTemplate.query(sql, MAPPER);
+//        if (list.isEmpty()) {
+//            return Optional.empty();
+//        } else {
+//            return Optional.of(list.get(0));
+//        }
+//    }
 
     @Override
     public void insert(Team team) {
@@ -63,7 +81,7 @@ public class TeamDao implements TeamRepository {
         var keyHolder = new GeneratedKeyHolder();
         String sql = "insert into team (name, location, since, till) values (name, location, since, till)";
         jdbcTemplate.update(sql, params, keyHolder);
-        team.setId((Long)(keyHolder.getKeys().get("id")));
+        team.setId((Long)(Objects.requireNonNull(keyHolder.getKeys()).get("id")));
     }
 
 //    @Override
