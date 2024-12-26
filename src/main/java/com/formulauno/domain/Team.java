@@ -6,12 +6,14 @@ import java.util.Collection;
 
 @Data
 @AllArgsConstructor
-@EqualsAndHashCode
 @Builder(toBuilder = true)
-public class Author {
+public class Team {
     private long id;
     private String name;
+    private String location;
+    private int since;
+    private int till;
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    Collection<Book> books;
+    private Collection<Team> teams;
 }

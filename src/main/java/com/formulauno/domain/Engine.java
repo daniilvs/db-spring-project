@@ -3,16 +3,15 @@ package com.formulauno.domain;
 import lombok.*;
 
 import java.util.Collection;
-import java.util.Objects;
 
 @Data
 @AllArgsConstructor
+@EqualsAndHashCode
 @Builder(toBuilder = true)
-public class Book {
+public class Engine {
     private long id;
-    private String title;
-    private int year;
+    private String manufacturer;
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private Collection<Author> authors;
+    Collection<Engine> engines;
 }
