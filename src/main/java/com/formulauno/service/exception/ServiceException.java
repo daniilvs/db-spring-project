@@ -1,6 +1,6 @@
 package com.formulauno.service.exception;
 
-import JDBC.and.Boot.AppException;
+import com.formulauno.AppException;
 
 public class ServiceException extends AppException {
     public ServiceException(String code, Object... params) {

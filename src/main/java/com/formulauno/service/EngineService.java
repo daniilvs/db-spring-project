@@ -1,11 +1,10 @@
-package com.formulauno.repository;
+package com.formulauno.service;
 
 import com.formulauno.domain.Engine;
-
 import java.util.Collection;
 
 
-public interface EngineRepository {
+public interface EngineService {
     Collection<Engine> findAll();
     void insert(Engine engine);
     void remove(Engine engine);

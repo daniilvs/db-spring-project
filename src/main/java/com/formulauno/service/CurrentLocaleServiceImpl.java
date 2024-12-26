@@ -1,6 +1,6 @@
 package com.formulauno.service;
 
-import JDBC.and.Boot.service.exception.LocaleNotSupportedException;
+import com.formulauno.service.exception.LocaleNotSupportedException;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
